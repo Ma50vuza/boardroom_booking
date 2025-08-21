@@ -4,7 +4,7 @@ import 'package:boardroom_booking/providers/auth_provider.dart';
 import 'package:boardroom_booking/providers/boardroom_provider.dart';
 import 'package:boardroom_booking/providers/booking_provider.dart';
 import 'package:boardroom_booking/services/api_service.dart';
-import 'package:boardroom_booking/screens/auth/login_screen.dart';
+import 'package:boardroom_booking/screens/auth/auth_wrapper.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
           primaryColor: const Color(0xFF6366F1),
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        home: const LoginScreen(),
+        home: const AuthWrapper(),
       ),
     );
   }

@@ -346,9 +346,9 @@ class BookingDetailsSheet extends StatelessWidget {
                       _buildDetailRow('Status', booking.status, isStatus: true),
                       if (booking.purpose.isNotEmpty)
                         _buildDetailRow('Purpose', booking.purpose),
-                      if (booking.attendees > 0)
+                      if (booking.attendees.isNotEmpty || booking.externalAttendees.isNotEmpty)
                         _buildDetailRow(
-                            'Attendees', '${booking.attendees} people'),
+                            'Attendees', '${booking.attendees.length + booking.externalAttendees.length} people'),
                       _buildDetailRow('Booked on', booking.formattedBookedAt),
                     ],
                   ),

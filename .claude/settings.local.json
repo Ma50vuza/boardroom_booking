@@ -5,7 +5,10 @@
       "WebFetch(domain:boardroom-app.onrender.com)",
       "WebSearch",
       "Bash(rm:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(convert:*)"
     ],
     "deny": [],
     "ask": []

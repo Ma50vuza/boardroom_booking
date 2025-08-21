@@ -37,85 +37,37 @@ class BookingCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header with title and buttons
-          Row(
+          // Header with title only
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      booking.purpose,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.meeting_room,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          booking.boardroomName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              Text(
+                booking.purpose,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
               ),
-              if (_canModify()) ...[
-                const SizedBox(width: 8),
-                Flexible(
-                  child: ElevatedButton(
-                    onPressed: onEdit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      elevation: 0,
-                      minimumSize: const Size(60, 36),
-                    ),
-                    child: const Text(
-                      'Edit',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    Icons.meeting_room,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    booking.boardroomName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: ElevatedButton(
-                    onPressed: onCancel,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      elevation: 0,
-                      minimumSize: const Size(80, 36),
-                    ),
-                    child: const Text(
-                      'Cancel Booking',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ],
           ),
 
@@ -134,7 +86,7 @@ class BookingCard extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Attendees section
-          if (booking.externalAttendees.isNotEmpty || _shouldShowHost()) ...[
+          if (booking.attendees.isNotEmpty || booking.externalAttendees.isNotEmpty || _shouldShowHost()) ...[
             const Text(
               'Attendees:',
               style: TextStyle(
@@ -182,6 +134,52 @@ class BookingCard extends StatelessWidget {
               );
             }).toList(),
           ),
+
+          // Action buttons at the bottom
+          if (_canModify()) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onEdit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Edit',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onCancel,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -205,6 +203,32 @@ class BookingCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               color: Colors.green[700],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Add internal attendees (other users)
+    for (final attendee in booking.attendees) {
+      final name = attendee.name.isNotEmpty 
+          ? attendee.name 
+          : attendee.email.split('@')[0];
+      
+      attendeeWidgets.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          margin: const EdgeInsets.only(bottom: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            name,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF6366F1),
               fontWeight: FontWeight.w500,
             ),
           ),

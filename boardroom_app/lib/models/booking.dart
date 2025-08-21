@@ -1,4 +1,6 @@
 // models/booking.dart
+import 'user.dart';
+
 class Booking {
   final String id;
   final String userId;
@@ -9,7 +11,7 @@ class Booking {
   final String endTime;
   final String status;
   final String purpose;
-  final int attendees;
+  final List<User> attendees;
   final List<Map<String, String>> externalAttendees;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -24,7 +26,7 @@ class Booking {
     required this.endTime,
     required this.status,
     required this.purpose,
-    this.attendees = 0,
+    this.attendees = const [],
     this.externalAttendees = const [],
     required this.createdAt,
     this.updatedAt,
@@ -66,7 +68,25 @@ class Booking {
           json['endTime']?.toString() ?? json['end_time']?.toString() ?? '',
       status: json['status']?.toString() ?? 'pending',
       purpose: json['purpose']?.toString() ?? '',
-      attendees: int.tryParse(json['attendees']?.toString() ?? '0') ?? 0,
+      attendees: json['attendees'] != null
+          ? (json['attendees'] as List<dynamic>? ?? [])
+              .map((attendeeData) {
+                if (attendeeData is Map<String, dynamic>) {
+                  // If attendee data is populated (User object)
+                  return User.fromJson(attendeeData);
+                } else {
+                  // If attendee data is just an ObjectId string, create minimal User
+                  return User(
+                    id: attendeeData.toString(),
+                    name: 'Loading...',
+                    email: '',
+                    role: 'user',
+                  );
+                }
+              })
+              .where((user) => user.id.isNotEmpty)
+              .toList()
+          : <User>[],
       externalAttendees: json['externalAttendees'] != null 
           ? List<Map<String, String>>.from(
               (json['externalAttendees'] as List<dynamic>? ?? []).map(
@@ -95,7 +115,7 @@ class Booking {
       'end_time': endTime,
       'status': status,
       'purpose': purpose,
-      'attendees': attendees,
+      'attendees': attendees.map((user) => user.id).toList(),
       'externalAttendees': externalAttendees,
       'created_at': createdAt.toIso8601String(),
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
@@ -113,7 +133,7 @@ class Booking {
     String? endTime,
     String? status,
     String? purpose,
-    int? attendees,
+    List<User>? attendees,
     List<Map<String, String>>? externalAttendees,
     DateTime? createdAt,
     DateTime? updatedAt,

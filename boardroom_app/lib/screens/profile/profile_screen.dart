@@ -14,9 +14,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, int> _bookingStats = {
     'total': 0,
-    'upcoming': 0,
-    'completed': 0,
-    'cancelled': 0,
   };
   DateTime? _lastBookingDate;
 
@@ -32,13 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bookings = bookingProvider.userBookings;
 
     int total = bookings.length;
-    int upcoming = bookings
-        .where((b) =>
-            b.isUpcoming && (b.status == 'confirmed' || b.status == 'pending'))
-        .length;
-    int completed =
-        bookings.where((b) => b.isPast && b.status == 'confirmed').length;
-    int cancelled = bookings.where((b) => b.status == 'cancelled').length;
 
     DateTime? lastDate;
     if (bookings.isNotEmpty) {
@@ -50,9 +40,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _bookingStats = {
         'total': total,
-        'upcoming': upcoming,
-        'completed': completed,
-        'cancelled': cancelled,
       };
       _lastBookingDate = lastDate;
     });
@@ -160,27 +147,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.calendar_today,
                         label: 'Total Bookings',
                         value: _bookingStats['total'].toString(),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStatRow(
-                        icon: Icons.upcoming,
-                        label: 'Upcoming',
-                        value: _bookingStats['upcoming'].toString(),
-                        valueColor: const Color(0xFF10B981),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStatRow(
-                        icon: Icons.check_circle,
-                        label: 'Completed',
-                        value: _bookingStats['completed'].toString(),
-                        valueColor: const Color(0xFF6B7280),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStatRow(
-                        icon: Icons.cancel,
-                        label: 'Cancelled',
-                        value: _bookingStats['cancelled'].toString(),
-                        valueColor: const Color(0xFFEF4444),
                       ),
                       const SizedBox(height: 16),
                       _buildStatusRow(

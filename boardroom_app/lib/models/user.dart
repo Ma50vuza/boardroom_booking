@@ -5,7 +5,7 @@ class User {
   final String role;
   final DateTime? lastLogin;
 
-  User({
+  const User({
     required this.id,
     required this.name,
     required this.email,

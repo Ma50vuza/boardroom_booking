@@ -19,11 +19,13 @@ class EditBookingScreen extends StatefulWidget {
 class _EditBookingScreenState extends State<EditBookingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _purposeController = TextEditingController();
-  final _attendeesController = TextEditingController();
+  final _externalEmailController = TextEditingController();
 
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+  List<Map<String, String>> _externalAttendees = [];
+  List<Map<String, dynamic>> _internalAttendees = [];
 
   @override
   void initState() {
@@ -33,8 +35,21 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
 
   void _initializeFields() {
     _purposeController.text = widget.booking.purpose;
-    _attendeesController.text = widget.booking.attendees.toString();
     _selectedDate = widget.booking.date;
+
+    // Copy existing external attendees
+    _externalAttendees =
+        List<Map<String, String>>.from(widget.booking.externalAttendees);
+
+    // Copy existing internal attendees as editable list
+    _internalAttendees = widget.booking.attendees
+        .map((user) => {
+              'id': user.id,
+              'name': user.name,
+              'email': user.email,
+              'role': user.role,
+            })
+        .toList();
 
     _startTime = _parseTimeString(widget.booking.startTime);
     _endTime = _parseTimeString(widget.booking.endTime);
@@ -57,8 +72,52 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
   @override
   void dispose() {
     _purposeController.dispose();
-    _attendeesController.dispose();
+    _externalEmailController.dispose();
     super.dispose();
+  }
+
+  void _addExternalAttendee() {
+    if (_externalEmailController.text.trim().isEmpty) return;
+
+    final email = _externalEmailController.text.trim();
+
+    // Check if email is already added in external attendees
+    if (_externalAttendees.any((attendee) => attendee['email'] == email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This attendee is already added')),
+      );
+      return;
+    }
+
+    // Check if email is already added in internal attendees
+    if (_internalAttendees.any((attendee) => attendee['email'] == email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This attendee is already added')),
+      );
+      return;
+    }
+
+    // For now, add as external attendee. In a full implementation,
+    // we would check if this email belongs to a registered user first
+    setState(() {
+      _externalAttendees.add({
+        'email': email,
+        'name': email.split('@')[0],
+      });
+      _externalEmailController.clear();
+    });
+  }
+
+  void _removeExternalAttendee(int index) {
+    setState(() {
+      _externalAttendees.removeAt(index);
+    });
+  }
+
+  void _removeInternalAttendee(int index) {
+    setState(() {
+      _internalAttendees.removeAt(index);
+    });
   }
 
   String _formatDate(DateTime date) {
@@ -140,14 +199,6 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       return;
     }
 
-    final attendeesCount = int.tryParse(_attendeesController.text) ?? 1;
-    if (attendeesCount < 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Attendees must be at least 1')),
-      );
-      return;
-    }
-
     final bookingProvider =
         Provider.of<BookingProvider>(context, listen: false);
 
@@ -157,7 +208,11 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       startTime: _formatTime(_startTime!),
       endTime: _formatTime(_endTime!),
       purpose: _purposeController.text.trim(),
-      attendees: attendeesCount,
+      attendees: 1, // Keep for now, will be handled by the attendees list
+      internalAttendees:
+          _internalAttendees.map((a) => a['id'] as String).toList(),
+      externalAttendees:
+          _externalAttendees.isNotEmpty ? _externalAttendees : null,
     );
 
     if (mounted) {
@@ -326,25 +381,213 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               },
             ),
 
+            const SizedBox(height: 24),
+
+            // Attendees Section
+            Text(
+              'Attendees',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
 
-            CustomTextField(
-              controller: _attendeesController,
-              labelText: 'Number of Attendees',
-              hintText: 'e.g., 5',
-              prefixIcon: Icons.people,
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter number of attendees';
-                }
-                final number = int.tryParse(value);
-                if (number == null || number < 1) {
-                  return 'Please enter a valid number (minimum 1)';
-                }
-                return null;
-              },
+            // Internal Attendees (Editable)
+            if (_internalAttendees.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF6366F1).withOpacity(0.2),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.people,
+                          size: 20,
+                          color: Color(0xFF6366F1),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Internal Attendees (${_internalAttendees.length})',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6366F1),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    for (final entry in _internalAttendees.asMap().entries)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: const Color(0xFF6366F1).withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    entry.value['name'] ?? '',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  if (entry.value['email'] != null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      entry.value['email']!,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  _removeInternalAttendee(entry.key),
+                              icon: const Icon(Icons.remove_circle_outline),
+                              color: Colors.red,
+                              iconSize: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Add attendees input
+            Row(
+              children: [
+                Expanded(
+                  child: CustomTextField(
+                    controller: _externalEmailController,
+                    labelText: 'Add Attendees',
+                    hintText: 'Enter email address',
+                    prefixIcon: Icons.email,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        if (!value.contains('@')) {
+                          return 'Please enter a valid email address';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _addExternalAttendee,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    child: const Icon(Icons.add),
+                  ),
+                ),
+              ],
             ),
+
+            // External attendees list
+            if (_externalAttendees.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.grey.withOpacity(0.2),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.email,
+                          size: 20,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'External Attendees (${_externalAttendees.length})',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    for (final entry in _externalAttendees.asMap().entries)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border:
+                              Border.all(color: Colors.grey.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    entry.value['email'] ?? '',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () =>
+                                  _removeExternalAttendee(entry.key),
+                              icon: const Icon(Icons.remove_circle_outline),
+                              color: Colors.red,
+                              iconSize: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
 
             const SizedBox(height: 32),
 

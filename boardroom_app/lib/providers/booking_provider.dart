@@ -89,6 +89,8 @@ class BookingProvider with ChangeNotifier {
     required String endTime,
     required String purpose,
     required int attendees,
+    List<String>? internalAttendees,
+    List<Map<String, String>>? externalAttendees,
   }) async {
     _error = null;
 
@@ -115,6 +117,8 @@ class BookingProvider with ChangeNotifier {
         startTime: startDateTime,
         endTime: endDateTime,
         purpose: purpose,
+        attendees: internalAttendees,
+        externalAttendees: externalAttendees,
       );
 
       if (response['success'] == true) {
@@ -127,7 +131,6 @@ class BookingProvider with ChangeNotifier {
             startTime: startTime,
             endTime: endTime,
             purpose: purpose,
-            attendees: attendees,
             updatedAt: DateTime.now(),
           );
           notifyListeners();
