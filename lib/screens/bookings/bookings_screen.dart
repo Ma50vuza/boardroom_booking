@@ -6,6 +6,7 @@ import 'package:boardroom_booking/widgets/booking_card.dart';
 import 'package:boardroom_booking/widgets/loading_widget.dart';
 import 'package:boardroom_booking/widgets/empty_state_widget.dart';
 import 'package:boardroom_booking/screens/bookings/edit_booking_screen.dart';
+import 'package:boardroom_booking/screens/bookings/create_booking_screen.dart';
 
 class BookingsScreen extends StatefulWidget {
   const BookingsScreen({super.key});
@@ -15,7 +16,7 @@ class BookingsScreen extends StatefulWidget {
 }
 
 class _BookingsScreenState extends State<BookingsScreen> {
-  DateTimeRange? _dateRange;
+  DateTime? _selectedDate;
 
   @override
   void initState() {
@@ -27,33 +28,67 @@ class _BookingsScreenState extends State<BookingsScreen> {
 
   void _loadBookings() {
     final provider = Provider.of<BookingProvider>(context, listen: false);
-    provider.fetchUserBookings(
-      startDate: _dateRange?.start,
-      endDate: _dateRange?.end,
-    );
+    // Load all bookings - we'll filter them client-side
+    provider.fetchUserBookings();
   }
 
   void _showDateFilter() async {
-    final DateTimeRange? picked = await showDateRangePicker(
+    final DateTime? picked = await showDatePicker(
       context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      initialDateRange: _dateRange,
     );
 
-    if (picked != null && picked != _dateRange) {
+    if (picked != null && picked != _selectedDate) {
       setState(() {
-        _dateRange = picked;
+        _selectedDate = picked;
       });
-      _loadBookings();
     }
   }
 
   void _clearDateFilter() {
     setState(() {
-      _dateRange = null;
+      _selectedDate = null;
     });
-    _loadBookings();
+  }
+
+  String _formatSelectedDate(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = DateTime(date.year, date.month, date.day);
+
+    if (selectedDay == today) {
+      return 'Today';
+    } else if (selectedDay == today.add(const Duration(days: 1))) {
+      return 'Tomorrow';
+    } else if (selectedDay == today.subtract(const Duration(days: 1))) {
+      return 'Yesterday';
+    } else {
+      return '${date.day} ${months[date.month - 1]}, ${date.year}';
+    }
+  }
+
+  List<Booking> _getFilteredBookings(List<Booking> allBookings) {
+    if (_selectedDate == null) {
+      return allBookings;
+    }
+
+    final selectedDay = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day);
+    
+    return allBookings.where((booking) {
+      final bookingDay = DateTime(booking.date.year, booking.date.month, booking.date.day);
+      return bookingDay == selectedDay;
+    }).toList();
+  }
+
+  void _navigateToCreateBooking() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const CreateBookingScreen(),
+      ),
+    );
   }
 
   @override
@@ -100,22 +135,22 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     child: OutlinedButton.icon(
                       onPressed: _showDateFilter,
                       icon: Icon(
-                        Icons.date_range,
-                        color: _dateRange != null ? const Color(0xFF6366F1) : Colors.grey[600],
+                        Icons.calendar_today,
+                        color: _selectedDate != null ? const Color(0xFF6366F1) : Colors.grey[600],
                         size: 20,
                       ),
                       label: Text(
-                        _dateRange != null
-                            ? '${_dateRange!.start.day}/${_dateRange!.start.month}/${_dateRange!.start.year} - ${_dateRange!.end.day}/${_dateRange!.end.month}/${_dateRange!.end.year}'
-                            : 'Select Date Range',
+                        _selectedDate != null
+                            ? _formatSelectedDate(_selectedDate!)
+                            : 'Select Date',
                         style: TextStyle(
-                          color: _dateRange != null ? const Color(0xFF6366F1) : Colors.grey[600],
-                          fontWeight: _dateRange != null ? FontWeight.w600 : FontWeight.normal,
+                          color: _selectedDate != null ? const Color(0xFF6366F1) : Colors.grey[600],
+                          fontWeight: _selectedDate != null ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide.none,
-                        backgroundColor: _dateRange != null 
+                        backgroundColor: _selectedDate != null 
                             ? const Color(0xFF6366F1).withValues(alpha: 0.1) 
                             : null,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -123,7 +158,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                     ),
                   ),
                 ),
-                if (_dateRange != null) ...[
+                if (_selectedDate != null) ...[
                   const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
@@ -184,20 +219,27 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   );
                 }
 
-                final bookings = bookingProvider.userBookings;
+                final allBookings = bookingProvider.userBookings;
+                final filteredBookings = _getFilteredBookings(allBookings);
 
-                if (bookings.isEmpty) {
+                // Handle empty states
+                if (allBookings.isEmpty) {
                   return EmptyStateWidget(
                     icon: Icons.calendar_today_outlined,
                     title: 'No bookings found',
-                    subtitle: _dateRange != null
-                        ? 'No bookings found for the selected date range'
-                        : 'You haven\'t made any bookings yet',
+                    subtitle: 'You haven\'t made any bookings yet',
                     actionText: 'Make a Booking',
-                    onAction: () {
-                      // Navigate to dashboard to make a booking
-                      DefaultTabController.of(context).animateTo(0);
-                    },
+                    onAction: _navigateToCreateBooking,
+                  );
+                }
+
+                if (filteredBookings.isEmpty && _selectedDate != null) {
+                  return EmptyStateWidget(
+                    icon: Icons.event_busy,
+                    title: 'No bookings found',
+                    subtitle: 'No bookings found for ${_formatSelectedDate(_selectedDate!)}.\nTap below to create a new booking or clear the date filter.',
+                    actionText: 'Make a Booking',
+                    onAction: _navigateToCreateBooking,
                   );
                 }
 
@@ -205,9 +247,9 @@ class _BookingsScreenState extends State<BookingsScreen> {
                   onRefresh: () async => _loadBookings(),
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    itemCount: bookings.length,
+                    itemCount: filteredBookings.length,
                     itemBuilder: (context, index) {
-                      final booking = bookings[index];
+                      final booking = filteredBookings[index];
                       return BookingCard(
                         booking: booking,
                         onTap: () => _showBookingDetails(booking),
@@ -279,15 +321,17 @@ class _BookingsScreenState extends State<BookingsScreen> {
     if (confirmed == true && mounted) {
       final provider = Provider.of<BookingProvider>(context, listen: false);
       await provider.cancelBooking(booking.id);
-      if (provider.error == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking cancelled successfully')),
-        );
-        _loadBookings();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${provider.error}')),
-        );
+      if (mounted) {
+        if (provider.error == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Booking cancelled successfully')),
+          );
+          _loadBookings();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${provider.error}')),
+          );
+        }
       }
     }
   }
@@ -383,15 +427,15 @@ class BookingDetailsSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFF6366F1).withOpacity(0.08),
-                    const Color(0xFF8B5CF6).withOpacity(0.08),
+                    const Color(0xFF6366F1).withValues(alpha: 0.08),
+                    const Color(0xFF8B5CF6).withValues(alpha: 0.08),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: const Color(0xFF6366F1).withOpacity(0.2),
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -498,9 +542,9 @@ class BookingDetailsSheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         status.toUpperCase(),
