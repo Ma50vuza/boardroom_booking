@@ -44,7 +44,7 @@ class _BoardroomDetailScreenState extends State<BoardroomDetailScreen> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -63,7 +63,7 @@ class _BoardroomDetailScreenState extends State<BoardroomDetailScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -159,7 +159,7 @@ class _BoardroomDetailScreenState extends State<BoardroomDetailScreen> {
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(0.1),
+                      Colors.black.withValues(alpha: 0.1),
                     ],
                   ),
                 ),
@@ -205,7 +205,7 @@ class _BoardroomDetailScreenState extends State<BoardroomDetailScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -235,7 +235,7 @@ class _BoardroomDetailScreenState extends State<BoardroomDetailScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -323,9 +323,9 @@ class _BoardroomDetailScreenState extends State<BoardroomDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,7 +335,7 @@ class _BoardroomDetailScreenState extends State<BoardroomDetailScreen> {
           Text(
             title,
             style: TextStyle(
-              color: color.withOpacity(0.8),
+              color: color.withValues(alpha: 0.8),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -489,7 +489,7 @@ class _BoardroomDetailScreenState extends State<BoardroomDetailScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: widget.boardroom.isActive ? 8 : 2,
-          shadowColor: Colors.blue.withOpacity(0.3),
+          shadowColor: Colors.blue.withValues(alpha: 0.3),
         ),
         child: Text(
           widget.boardroom.isActive ? 'Book Now' : 'Unavailable',

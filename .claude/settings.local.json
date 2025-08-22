@@ -8,7 +8,8 @@
       "Bash(mv:*)",
       "Bash(mkdir:*)",
       "Bash(cp:*)",
-      "Bash(convert:*)"
+      "Bash(convert:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

@@ -17,7 +17,6 @@ class BookingService {
     DateTime? endDate,
     String? status,
   }) async {
-    print('Attempting to get bookings with URL: $baseUrl/bookings/my-bookings');
 
     final token = await getToken();
     if (token == null) {
@@ -55,7 +54,6 @@ class BookingService {
     List<Map<String, String>>? externalAttendees,
     String? notes,
   }) async {
-    print('Attempting to create booking with URL: $baseUrl/bookings');
 
     final token = await getToken();
     if (token == null) {
@@ -68,6 +66,7 @@ class BookingService {
         headers: _getAuthHeaders(token),
         body: json.encode({
           'boardroom': boardroomId,
+          'date': '${startTime.year}-${startTime.month.toString().padLeft(2, '0')}-${startTime.day.toString().padLeft(2, '0')}', // YYYY-MM-DD format
           'startTime': startTime.toIso8601String(),
           'endTime': endTime.toIso8601String(),
           'purpose': purpose,
@@ -88,8 +87,6 @@ class BookingService {
     List<Map<String, String>>? externalAttendees,
     String? notes,
   }) async {
-    print(
-        'Attempting to update booking with URL: $baseUrl/bookings/$bookingId');
 
     final token = await getToken();
     if (token == null) {
@@ -99,8 +96,15 @@ class BookingService {
     Map<String, dynamic> updateData = {};
     if (startTime != null) {
       updateData['startTime'] = startTime.toIso8601String();
+      updateData['date'] = '${startTime.year}-${startTime.month.toString().padLeft(2, '0')}-${startTime.day.toString().padLeft(2, '0')}';
     }
-    if (endTime != null) updateData['endTime'] = endTime.toIso8601String();
+    if (endTime != null) {
+      updateData['endTime'] = endTime.toIso8601String();
+      // If we don't have startTime but have endTime, still include date
+      if (startTime == null) {
+        updateData['date'] = '${endTime.year}-${endTime.month.toString().padLeft(2, '0')}-${endTime.day.toString().padLeft(2, '0')}';
+      }
+    }
     if (purpose != null) updateData['purpose'] = purpose;
     if (attendees != null) updateData['attendees'] = attendees;
     if (externalAttendees != null) {
@@ -118,8 +122,6 @@ class BookingService {
   }
 
   static Future<Map<String, dynamic>> cancelBooking(String bookingId) async {
-    print(
-        'Attempting to cancel booking with URL: $baseUrl/bookings/$bookingId');
 
     final token = await getToken();
     if (token == null) {
@@ -139,8 +141,6 @@ class BookingService {
     required DateTime startTime,
     required DateTime endTime,
   }) async {
-    print(
-        'Attempting to check availability with URL: $baseUrl/bookings/availability/$boardroomId');
 
     final token = await getToken();
     if (token == null) {

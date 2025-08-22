@@ -28,7 +28,6 @@ class ApiService {
     try {
       return await _storage.read(key: _tokenKey);
     } catch (e) {
-      print('Error reading token: $e');
       return null;
     }
   }
@@ -36,17 +35,13 @@ class ApiService {
   static Future<void> saveToken(String token) async {
     try {
       await _storage.write(key: _tokenKey, value: token);
-    } catch (e) {
-      print('Error saving token: $e');
-    }
+    } catch (e) {}
   }
 
   static Future<void> deleteToken() async {
     try {
       await _storage.delete(key: _tokenKey);
-    } catch (e) {
-      print('Error deleting token: $e');
-    }
+    } catch (e) {}
   }
 
   static Map<String, String> getHeaders({bool includeAuth = true}) {
@@ -90,20 +85,13 @@ class ApiService {
     Future<http.Response> Function() request,
   ) async {
     try {
-      print('Making API request to: $baseUrl');
-      print('Platform: ${kIsWeb ? "Web" : "Mobile"}');
-
       final response = await request().timeout(_timeout);
-
-      print('Response status: ${response.statusCode}');
-      print('Response headers: ${response.headers}');
 
       if (response.body.isEmpty) {
         return {'success': false, 'message': 'Empty response from server'};
       }
 
       final data = json.decode(response.body);
-      print('Response data: $data');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return {'success': true, 'data': data};
@@ -114,22 +102,19 @@ class ApiService {
               'Request failed with status ${response.statusCode}'
         };
       }
-    } on SocketException catch (e) {
-      print('SocketException: $e');
+    } on SocketException {
       return {
         'success': false,
         'message': kIsWeb
             ? 'Connection failed. This might be a CORS issue in web development. Try testing on mobile instead.'
             : 'No internet connection. Please check your network and try again.'
       };
-    } on HttpException catch (e) {
-      print('HttpException: $e');
+    } on HttpException {
       return {
         'success': false,
         'message': 'Server connection failed. Please try again later.'
       };
-    } on FormatException catch (e) {
-      print('FormatException: $e');
+    } on FormatException {
       return {
         'success': false,
         'message': 'Invalid response format from server'
@@ -164,8 +149,6 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    print('Attempting to register with URL: $baseUrl/auth/register');
-
     return await handleRequest(() async {
       return await http.post(
         Uri.parse('$baseUrl/auth/register'),
@@ -188,8 +171,6 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    print('Attempting to login with URL: $baseUrl/auth/login');
-
     return await handleRequest(() async {
       return await http.post(
         Uri.parse('$baseUrl/auth/login'),
@@ -208,8 +189,6 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> getUserProfile() async {
-    print('Attempting to get user profile with URL: $baseUrl/auth/profile');
-
     final token = await getToken();
     if (token == null) {
       return {'success': false, 'message': 'No authentication token found'};
@@ -224,8 +203,6 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> getBoardrooms() async {
-    print('Attempting to get boardrooms with URL: $baseUrl/boardrooms');
-
     final token = await getToken();
     if (token == null) {
       return {'success': false, 'message': 'No authentication token found'};
@@ -251,9 +228,6 @@ class ApiService {
       return {'success': false, 'message': 'No authentication token found'};
     }
 
-    // Add debug prints
-    print('DEBUG: Token length: ${token.length}');
-
     // Build query parameters
     List<String> queryParams = [];
     if (boardroomId != null) {
@@ -274,9 +248,6 @@ class ApiService {
       url = '$url?${queryParams.join('&')}';
     }
 
-    // Add debug print
-    print('DEBUG: Making request to: $url');
-
     return await handleRequest(() async {
       return await http.get(
         Uri.parse(url),
@@ -292,9 +263,6 @@ class ApiService {
       return {'success': false, 'message': 'No authentication token found'};
     }
 
-    print(
-        'Attempting to cancel booking with URL: $baseUrl/bookings/$bookingId');
-
     return await handleRequest(() async {
       return await http.delete(
         Uri.parse('$baseUrl/bookings/$bookingId'),
@@ -304,8 +272,6 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> healthCheck() async {
-    print('Attempting health check with URL: $baseUrl/health');
-
     return await handleRequest(() async {
       return await http.get(
         Uri.parse('$baseUrl/health'),
@@ -319,7 +285,6 @@ class ApiService {
       final result = await healthCheck();
       return result['success'] == true;
     } catch (e) {
-      print('Connectivity test failed: $e');
       return false;
     }
   }
@@ -343,6 +308,7 @@ class ApiService {
         headers: getAuthHeaders(token),
         body: json.encode({
           'boardroom': boardroomId,
+          'date': '${startTime.year}-${startTime.month.toString().padLeft(2, '0')}-${startTime.day.toString().padLeft(2, '0')}', // YYYY-MM-DD format
           'startTime': startTime.toIso8601String(),
           'endTime': endTime.toIso8601String(),
           'purpose': purpose,

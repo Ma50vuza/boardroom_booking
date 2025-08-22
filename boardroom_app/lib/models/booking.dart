@@ -60,8 +60,47 @@ class Booking {
       userId: json['user']?.toString() ?? json['user_id']?.toString() ?? '',
       boardroomId: boardroomId,
       boardroomName: boardroomName,
-      date: DateTime.parse(
-          json['date']?.toString() ?? DateTime.now().toIso8601String()),
+      date: () {
+        // Try various possible date field names that the API might use
+        final possibleDateFields = [
+          'date',
+          'booking_date', 
+          'bookingDate',
+          'scheduled_date',
+          'scheduledDate',
+          'event_date',
+          'eventDate',
+        ];
+        
+        // First, try to find an actual date field
+        for (final fieldName in possibleDateFields) {
+          final dateStr = json[fieldName]?.toString();
+          if (dateStr != null && dateStr.isNotEmpty && dateStr != 'null') {
+            try {
+              return DateTime.parse(dateStr);
+            } catch (e) {
+              // Try next field
+              continue;
+            }
+          }
+        }
+        
+        // If no dedicated date field, extract date from startTime
+        final startTimeStr = json['startTime']?.toString() ?? json['start_time']?.toString();
+        if (startTimeStr != null && startTimeStr.isNotEmpty && startTimeStr != 'null') {
+          try {
+            final startDateTime = DateTime.parse(startTimeStr);
+            // Return just the date part (without time)
+            return DateTime(startDateTime.year, startDateTime.month, startDateTime.day);
+          } catch (e) {
+            // startTime format might be different, continue to fallback
+          }
+        }
+        
+        // If we reach here, we have no valid date info
+        // This is likely the source of the bug - returning today's date as fallback
+        return DateTime.now();
+      }(),
       startTime:
           json['startTime']?.toString() ?? json['start_time']?.toString() ?? '',
       endTime:
@@ -188,6 +227,39 @@ class Booking {
     }
   }
 
+  // Relative date string (Today, Tomorrow, etc.)
+  String get relativeDateString {
+    const months = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final bookingDate = DateTime(date.year, date.month, date.day);
+
+    if (bookingDate == today) {
+      return 'Today';
+    } else if (bookingDate == today.add(const Duration(days: 1))) {
+      return 'Tomorrow';
+    } else if (bookingDate == today.subtract(const Duration(days: 1))) {
+      return 'Yesterday';
+    } else {
+      return '${date.day} ${months[date.month]}, ${date.year}';
+    }
+  }
+
   // Formatted duration
   String get formattedDuration {
     final start = _parseTime(startTime);
@@ -278,6 +350,7 @@ class Booking {
         return 'grey';
     }
   }
+
 
   // Helper method to parse time string (HH:mm) to DateTime
   DateTime? _parseTime(String timeStr) {

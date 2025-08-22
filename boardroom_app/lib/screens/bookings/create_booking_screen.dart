@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:boardroom_booking/models/boardroom.dart';
 import 'package:boardroom_booking/widgets/custom_text_field.dart';
 import 'package:boardroom_booking/providers/booking_provider.dart';
+import 'package:boardroom_booking/providers/boardroom_provider.dart';
 
 class CreateBookingScreen extends StatefulWidget {
   final Boardroom? selectedBoardroom;
@@ -25,6 +26,7 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   DateTime? _selectedDate;
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+  Boardroom? _selectedBoardroom;
   final List<Map<String, String>> _externalAttendees = [];
   bool _isCheckingAvailability = false;
   String? _availabilityMessage;
@@ -33,6 +35,21 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
+    _selectedBoardroom = widget.selectedBoardroom;
+    
+    // Load boardrooms and auto-select the first one if none is selected
+    if (widget.selectedBoardroom == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final boardroomProvider = Provider.of<BoardroomProvider>(context, listen: false);
+        boardroomProvider.fetchBoardrooms().then((_) {
+          if (boardroomProvider.boardrooms.isNotEmpty && mounted) {
+            setState(() {
+              _selectedBoardroom = boardroomProvider.boardrooms.first;
+            });
+          }
+        });
+      });
+    }
   }
 
   @override
@@ -112,9 +129,11 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
       final endMinutes = picked.hour * 60 + picked.minute;
 
       if (endMinutes <= startMinutes) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('End time must be after start time')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('End time must be after start time')),
+          );
+        }
         return;
       }
 
@@ -171,9 +190,18 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     try {
       final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
       
+      // Skip availability check if no boardroom is selected
+      if (_selectedBoardroom == null) {
+        setState(() {
+          _availabilityMessage = 'Please select a boardroom first';
+          _isCheckingAvailability = false;
+        });
+        return;
+      }
+
       // Get boardroom bookings for the selected date
       final existingBookings = await bookingProvider.getBoardroomBookings(
-        widget.selectedBoardroom!.id,
+        _selectedBoardroom!.id,
         startDate: _selectedDate,
         endDate: _selectedDate,
       );
@@ -246,13 +274,12 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
       return;
     }
 
-    // Re-check availability one more time before booking
-    await _checkAvailability();
-    if (_availabilityMessage != null && _availabilityMessage!.startsWith('❌')) {
+    // Check if boardroom is selected
+    if (_selectedBoardroom == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cannot book - time slot is no longer available'),
-          backgroundColor: Colors.red,
+          content: Text('Please wait for boardroom to load'),
+          backgroundColor: Colors.orange,
         ),
       );
       return;
@@ -261,12 +288,26 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
     final bookingProvider =
         Provider.of<BookingProvider>(context, listen: false);
 
+    // Re-check availability one more time before booking
+    await _checkAvailability();
+    if (_availabilityMessage != null && _availabilityMessage!.startsWith('❌')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot book - time slot is no longer available'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     // Convert TimeOfDay to time strings (HH:mm format)
     final startTimeString = _formatTime(_startTime!);
     final endTimeString = _formatTime(_endTime!);
 
     final success = await bookingProvider.createBooking(
-      boardroomId: widget.selectedBoardroom!.id,
+      boardroomId: _selectedBoardroom!.id,
       date: _selectedDate!,
       startTime: startTimeString,
       endTime: endTimeString,
@@ -302,8 +343,8 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.selectedBoardroom != null
-            ? 'Book ${widget.selectedBoardroom!.name}'
+        title: Text(_selectedBoardroom != null
+            ? 'Book ${_selectedBoardroom!.name}'
             : 'Create Booking'),
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
@@ -328,30 +369,44 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                 ),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              child: _selectedBoardroom == null 
+                ? const Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.meeting_room,
+                      CircularProgressIndicator(color: Colors.white),
+                      SizedBox(width: 16),
+                      Text(
+                        'Loading boardroom...',
+                        style: TextStyle(
                           color: Colors.white,
-                          size: 24,
+                          fontSize: 16,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.selectedBoardroom!.name,
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.meeting_room,
+                              color: Colors.white,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedBoardroom!.name,
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -364,14 +419,14 @@ class _CreateBookingScreenState extends State<CreateBookingScreen> {
                                 const Icon(Icons.location_on, size: 16, color: Colors.white70),
                                 const SizedBox(width: 4),
                                 Text(
-                                  widget.selectedBoardroom!.location,
+                                  _selectedBoardroom!.location,
                                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                                 ),
                                 const SizedBox(width: 16),
                                 const Icon(Icons.people, size: 16, color: Colors.white70),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '${widget.selectedBoardroom!.capacity} people',
+                                  '${_selectedBoardroom!.capacity} people',
                                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                                 ),
                               ],

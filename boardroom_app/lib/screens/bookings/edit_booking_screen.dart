@@ -177,9 +177,11 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
       final endMinutes = picked.hour * 60 + picked.minute;
 
       if (endMinutes <= startMinutes) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('End time must be after start time')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('End time must be after start time')),
+          );
+        }
         return;
       }
 
@@ -395,10 +397,10 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withOpacity(0.05),
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: const Color(0xFF6366F1).withOpacity(0.2),
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.2),
                   ),
                 ),
                 child: Column(
@@ -431,7 +433,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: const Color(0xFF6366F1).withOpacity(0.2)),
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           children: [
@@ -520,10 +522,10 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.05),
+                  color: Colors.grey.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.grey.withOpacity(0.2),
+                    color: Colors.grey.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Column(
@@ -556,7 +558,7 @@ class _EditBookingScreenState extends State<EditBookingScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
                           border:
-                              Border.all(color: Colors.grey.withOpacity(0.2)),
+                              Border.all(color: Colors.grey.withValues(alpha: 0.2)),
                         ),
                         child: Row(
                           children: [
